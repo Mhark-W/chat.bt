@@ -27,7 +27,7 @@ const App: React.FC = () => {
         {
           id: 'welcome',
           role: 'assistant',
-          content: "System online. I am initialized with the Project Nova Technical Specification. How can I assist you with system queries today?",
+          content: "Hello! I can help you with the 1947 London Christmas menu. What would you like to know?",
           timestamp: new Date(),
         },
       ]);
@@ -107,7 +107,7 @@ const App: React.FC = () => {
             <h1 className="font-bold text-lg text-slate-100 tracking-tight leading-none mb-1">1947 LONDON</h1>
             <div className="flex items-center space-x-2 text-[10px] text-slate-400 font-medium uppercase tracking-widest">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-              <span>Knowledge Base Loaded</span>
+              <span>Online</span>
             </div>
           </div>
         </div>
@@ -150,7 +150,7 @@ const App: React.FC = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isTyping}
-            placeholder="Query knowledge base..."
+            placeholder="Type your message..."
             className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-2xl pl-5 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-50 placeholder:text-slate-500"
           />
           <button
@@ -162,7 +162,7 @@ const App: React.FC = () => {
           </button>
         </form>
         <div className="flex justify-center mt-3 space-x-6 text-[10px] text-slate-500 font-medium">
-          <span className="flex items-center"><i className="fas fa-bolt mr-1 text-indigo-500/70"></i> Gemini Flash</span>
+          <span className="flex items-center"><i className="fas fa-bolt mr-1 text-indigo-500/70"></i> 1947 London</span>
           <span className="flex items-center"><i className="fas fa-shield-alt mr-1 text-indigo-500/70"></i> Secure Session</span>
         </div>
       </footer>
