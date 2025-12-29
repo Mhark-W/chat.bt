@@ -12,21 +12,25 @@ const App: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
 
+  // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isTyping]);
 
+  // Initialize session with "under the hood" knowledge
   useEffect(() => {
     if (!initialized.current) {
       geminiService.startSession(INTERNAL_KNOWLEDGE_BASE);
-      setMessages([{
-        id: 'welcome',
-        role: 'assistant',
-        content: "Good evening. Welcome to 1947 London. I am your concierge for our Christmas Menu. How may I assist you with your festive booking or menu queries today?",
-        timestamp: new Date(),
-      }]);
+      setMessages([
+        {
+          id: 'welcome',
+          role: 'assistant',
+          content: "Hello! I can help you with the 1947 London Christmas menu. What would you like to know?",
+          timestamp: new Date(),
+        },
+      ]);
       initialized.current = true;
     }
   }, []);
@@ -42,81 +46,124 @@ const App: React.FC = () => {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
 
-    const assistantMsgId = (Date.now() + 1).toString();
-    const assistantMessage: Message = { id: assistantMsgId, role: 'assistant', content: '', timestamp: new Date() };
-    setMessages(prev => [...prev, assistantMessage]);
+    const assistantMessageId = (Date.now() + 1).toString();
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, assistantMessage]);
 
     try {
-      let accumulated = '';
+      let accumulatedContent = '';
       const stream = geminiService.sendMessageStream(input);
+
       for await (const chunk of stream) {
-        accumulated += chunk;
-        setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: accumulated } : m));
+        accumulatedContent += chunk;
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageId
+              ? { ...msg, content: accumulatedContent }
+              : msg
+          )
+        );
       }
     } catch (error) {
-      setMessages(prev => prev.map(m => m.id === assistantMsgId ? { ...m, content: "I'm sorry, I'm experiencing a connectivity issue. Please try again in a moment." } : m));
+      console.error("Communication error:", error);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessageId
+            ? { ...msg, content: "Error: Could not process request. Please check your network connection." }
+            : msg
+        )
+      );
     } finally {
       setIsTyping(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-5xl mx-auto bg-[#020617] md:border-x border-slate-800 shadow-2xl">
-      <header className="bg-slate-900/95 backdrop-blur-xl border-b border-slate-800 p-5 flex items-center justify-between z-20">
+    <div className="flex flex-col h-screen max-w-4xl mx-auto bg-[#020617] shadow-2xl overflow-hidden md:border-x border-slate-800">
+      {/* Header */}
+      <header className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 p-5 flex justify-between items-center">
         <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-700 shadow-lg">
-            <img src="https://243088642-371719071296988-227174979095224272-n.tiiny.site/243088642_371719071296988_227174979095224272_n.jpg" alt="Logo" className="w-full h-full object-cover" />
+          <div className="relative">
+            <div className="w-10 h-10 bg-slate-800 rounded-xl overflow-hidden shadow-lg shadow-indigo-500/10 border border-slate-700 flex items-center justify-center">
+              <img 
+                src="https://243088642-371719071296988-227174979095224272-n.tiiny.site/243088642_371719071296988_227174979095224272_n.jpg" 
+                alt="Nova Logo"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-slate-900 rounded-full"></div>
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-[0.1em] text-white">1947 LONDON</h1>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] flex items-center">
-              <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-              Christmas Concierge
-            </p>
+            <h1 className="font-bold text-lg text-slate-100 tracking-tight leading-none mb-1">1947 LONDON</h1>
+            <div className="flex items-center space-x-2 text-[10px] text-slate-400 font-medium uppercase tracking-widest">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+              <span>Online</span>
+            </div>
           </div>
+        </div>
+        <div className="flex items-center space-x-3">
+          <button className="text-slate-400 hover:text-white transition-colors">
+            <i className="fas fa-ellipsis-v"></i>
+          </button>
         </div>
       </header>
 
-      <main className="flex-1 overflow-hidden relative bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
-        <div ref={scrollRef} className="h-full overflow-y-auto p-6 space-y-8 scroll-smooth">
-          {messages.map(msg => <ChatMessage key={msg.id} message={msg} />)}
+      {/* Chat Area */}
+      <main className="flex-1 overflow-hidden flex flex-col relative">
+        <div 
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto p-6 space-y-6 bg-transparent"
+        >
+          {messages.map((msg) => (
+            <ChatMessage key={msg.id} message={msg} />
+          ))}
           {isTyping && messages[messages.length - 1]?.content === '' && (
-            <div className="flex justify-start ml-12 animate-pulse">
-              <div className="bg-slate-800/80 border border-slate-700 rounded-2xl px-4 py-3 flex space-x-1">
-                <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></div>
-                <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-75"></div>
-                <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-150"></div>
+            <div className="flex justify-start">
+              <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4 flex items-center space-x-2">
+                <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></div>
               </div>
             </div>
           )}
         </div>
       </main>
 
-      <footer className="p-6 bg-slate-900/80 backdrop-blur-md border-t border-slate-800">
-        <form onSubmit={handleSendMessage} className="relative flex items-center">
+      {/* Input Area */}
+      <footer className="p-6 bg-slate-900/50 backdrop-blur-md border-t border-slate-800">
+        <form 
+          onSubmit={handleSendMessage}
+          className="relative flex items-center group"
+        >
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isTyping}
-            placeholder="Ask about our Christmas menu..."
-            className="w-full bg-slate-800/50 border border-slate-700 text-slate-100 rounded-2xl pl-6 pr-16 py-5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all placeholder:text-slate-500 text-sm shadow-inner"
+            placeholder="Type your message..."
+            className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-2xl pl-5 pr-14 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-50 placeholder:text-slate-500"
           />
           <button
             type="submit"
             disabled={isTyping || !input.trim()}
-            className="absolute right-3 top-3 bottom-3 aspect-square bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center transition-all active:scale-90 disabled:bg-slate-700 disabled:text-slate-500 shadow-lg shadow-indigo-600/20"
+            className="absolute right-2 top-2 bottom-2 aspect-square bg-indigo-600 text-white rounded-xl flex items-center justify-center hover:bg-indigo-500 active:scale-95 transition-all disabled:bg-slate-700 disabled:text-slate-500 disabled:scale-100 shadow-lg shadow-indigo-600/10"
           >
-            {isTyping ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-paper-plane"></i>}
+            {isTyping ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-arrow-up"></i>}
           </button>
         </form>
-        <div className="mt-4 flex justify-center space-x-8 text-[10px] text-slate-500 font-bold tracking-widest uppercase">
-          <span className="flex items-center"><i className="fas fa-utensils mr-2 text-indigo-400"></i> Authentic Flavours</span>
-          <span className="flex items-center"><i className="fas fa-calendar-check mr-2 text-indigo-400"></i> Festive Bookings</span>
+        <div className="flex justify-center mt-3 space-x-6 text-[10px] text-slate-500 font-medium">
+          <span className="flex items-center"><i className="fas fa-bolt mr-1 text-indigo-500/70"></i> 1947 London</span>
+          <span className="flex items-center"><i className="fas fa-shield-alt mr-1 text-indigo-500/70"></i> Secure Session</span>
         </div>
       </footer>
     </div>
